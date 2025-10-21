@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Perguntas e Discussões
+    url: https://github.com/gabrielgfcramo1/ChatBOT/discussions
+    about: Para perguntas, ideias e discussões gerais
+  - name: 📚 Documentação
+    url: https://github.com/gabrielgfcramo1/ChatBOT/blob/main/README.md
+    about: Consulte a documentação completa do projeto
+  - name: 🔒 Vulnerabilidade de Segurança
+    url: https://github.com/gabrielgfcramo1/ChatBOT/security/advisories/new
+    about: Reportar vulnerabilidades de segurança de forma privada

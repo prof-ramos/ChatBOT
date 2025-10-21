@@ -1,0 +1,197 @@
+# CodeRabbit Configuration
+# Documentation: https://docs.coderabbit.ai/guides/configure-coderabbit
+
+language: "pt-BR"  # Revisões em Português do Brasil
+
+reviews:
+  # Revisão automática de Pull Requests
+  auto_review:
+    enabled: true
+    drafts: false  # Não revisar PRs em draft
+
+  # Configurações de revisão
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false  # Desabilitar poemas
+  review_status: true
+  collapse_walkthrough: false
+
+  # Ferramentas de análise
+  tools:
+    ruff:
+      enabled: true
+    black:
+      enabled: true
+    mypy:
+      enabled: true
+    bandit:
+      enabled: true
+
+  # Conhecimento do projeto
+  path_instructions:
+    - path: "main.py"
+      instructions: |
+        Este é o arquivo principal do bot Discord. Ao revisar:
+        - Verificar tratamento de erros em todas as interações Discord
+        - Validar que comandos estão documentados em !ajuda
+        - Confirmar que histórico de mensagens está limitado a 10
+        - Verificar se RAG está sendo usado corretamente (2 documentos)
+        - Garantir que respostas longas são divididas (limite 2000 chars)
+
+    - path: "database.py"
+      instructions: |
+        Módulo de persistência SQLite. Ao revisar:
+        - Verificar se todas as queries usam prepared statements (proteção SQL injection)
+        - Confirmar que conexões são fechadas em finally ou context managers
+        - Validar que transações são commitadas apropriadamente
+        - Verificar índices para queries frequentes
+
+    - path: "vector_db.py"
+      instructions: |
+        Módulo ChromaDB e embeddings. Ao revisar:
+        - Verificar se todas as funções de embedding são async
+        - Confirmar tratamento de erros da API OpenAI
+        - Validar que metadados estão sendo armazenados corretamente
+        - Verificar limites de n_results nas buscas
+
+    - path: "import_documents.py"
+      instructions: |
+        Script de importação em massa. Ao revisar:
+        - Verificar tratamento de arquivos corrompidos
+        - Validar extração de texto de PDFs/DOCXs
+        - Confirmar logging adequado de sucessos/falhas
+        - Verificar se há validação de tamanho de arquivo
+
+  # Ignorar arquivos
+  path_filters:
+    excluded:
+      - "*.lock"
+      - "*.md"
+      - ".gitignore"
+      - "chroma_db/**"
+      - "bot_data.db"
+      - "documentos_exemplo/**"
+      - ".local/**"
+
+chat:
+  # Habilitar chat interativo
+  auto_reply: true
+
+# Configurações específicas de Python
+code_quality:
+  # Métricas de qualidade
+  max_complexity: 15  # Complexidade ciclomática máxima
+  max_function_length: 100  # Linhas máximas por função
+  max_file_length: 500  # Linhas máximas por arquivo
+
+  # Padrões a seguir
+  patterns:
+    # Boas práticas
+    - pattern: "async def.*await.*"
+      message: "Funções async devem usar await - verificar se é realmente necessário ser async"
+
+    - pattern: "except:\\s*pass"
+      message: "Evitar except genérico com pass - adicionar logging ou tratamento específico"
+
+    - pattern: "TODO|FIXME|HACK|XXX"
+      message: "Marcadores de dívida técnica encontrados - considerar resolver antes do merge"
+
+    # Segurança
+    - pattern: "eval\\(|exec\\("
+      message: "ALERTA DE SEGURANÇA: eval/exec detectado - evitar uso por riscos de segurança"
+
+    - pattern: "os\\.system\\(|subprocess\\.call\\("
+      message: "Verificar se comando do sistema está sanitizado contra command injection"
+
+# Configurações de segurança
+security:
+  # Verificar secrets
+  check_secrets: true
+
+  # Padrões de segurança
+  patterns:
+    - "password\\s*=\\s*['\"][^'\"]+['\"]"
+    - "api[_-]?key\\s*=\\s*['\"][^'\"]+['\"]"
+    - "secret\\s*=\\s*['\"][^'\"]+['\"]"
+    - "token\\s*=\\s*['\"][^'\"]+['\"]"
+
+# Configurações de testes
+testing:
+  # Exigir testes para novos arquivos
+  require_tests: true
+  test_patterns:
+    - "test_*.py"
+    - "*_test.py"
+
+  # Cobertura mínima desejada
+  coverage:
+    enabled: true
+    minimum: 70
+
+# Configurações de documentação
+documentation:
+  # Exigir docstrings
+  require_docstrings: true
+  docstring_style: "google"  # Google-style docstrings
+
+  # Arquivos que precisam documentação
+  paths:
+    - "*.py"
+
+# Configurações de commits
+commits:
+  # Validar mensagens de commit
+  conventional_commits: true
+  patterns:
+    - "^(feat|fix|docs|style|refactor|test|chore)(\\(.+\\))?:"
+
+  # Tamanho de commits
+  max_files_changed: 20
+  warn_large_commits: true
+
+# Notificações
+notifications:
+  # Notificar sobre problemas críticos
+  critical_issues: true
+  security_issues: true
+
+  # Nível de detalhe
+  verbosity: "normal"  # minimal, normal, detailed
+
+# Configurações de auto-merge
+auto_merge:
+  enabled: false  # Desabilitado por segurança
+
+  # Condições para auto-merge (se habilitado)
+  conditions:
+    - all_checks_passed: true
+    - approved_reviews: 1
+    - no_request_changes: true
+    - up_to_date_branch: true
+
+# Configurações de labels
+labels:
+  # Auto-labeling de PRs
+  auto_label: true
+
+  # Mapeamento de labels
+  mappings:
+    bug:
+      - "fix"
+      - "bugfix"
+      - "hotfix"
+    enhancement:
+      - "feat"
+      - "feature"
+    documentation:
+      - "docs"
+    dependencies:
+      - "deps"
+      - "dependencies"
+    refactoring:
+      - "refactor"
+    testing:
+      - "test"
+    security:
+      - "security"
+      - "vulnerability"
