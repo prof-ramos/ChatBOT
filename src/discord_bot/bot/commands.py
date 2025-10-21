@@ -6,7 +6,7 @@ from typing import Optional
 import discord
 
 from ..database.sqlite_db import db
-from ..rag.vector_store import vector_store
+# from ..rag.vector_store import vector_store  # Temporarily disabled
 
 
 class CommandHandler:
@@ -85,17 +85,17 @@ O bot usa RAG para melhorar as respostas com informações da base de conhecimen
         username = str(message.author)
 
         async with message.channel.typing():
-            doc_id = await vector_store.add_document(
-                doc_text,
-                metadata={"author": username, "author_id": user_id}
-            )
+            # doc_id = await vector_store.add_document(  # Temporarily disabled
+            #     doc_text,
+            #     metadata={"author": username, "author_id": user_id}
+            # )
 
-            if doc_id:
-                await message.channel.send(
-                    f"✅ Documento adicionado à base de conhecimento!\nID: `{doc_id}`"
-                )
-            else:
-                await message.channel.send("❌ Erro ao adicionar documento.")
+            # if doc_id:
+            #     await message.channel.send(
+            #         f"✅ Documento adicionado à base de conhecimento!\nID: `{doc_id}`"
+            #     )
+            # else:
+            await message.channel.send("❌ RAG temporariamente desabilitado devido a problemas de dependências.")
 
     @staticmethod
     async def handle_search_documents(message: discord.Message, query: str):
@@ -105,42 +105,38 @@ O bot usa RAG para melhorar as respostas com informações da base de conhecimen
             return
 
         async with message.channel.typing():
-            results = await vector_store.search_similar(query, n_results=3)
+            # results = await vector_store.search_similar(query, n_results=3)  # Temporarily disabled
 
-            if results:
-                response = "🔍 **Documentos Encontrados:**\n\n"
-                for i, doc in enumerate(results, 1):
-                    text_preview = doc['text'][:200]
-                    if len(doc['text']) > 200:
-                        text_preview += '...'
-
-                    response += f"**{i}.** {text_preview}\n"
-                    if doc['metadata']:
-                        response += f"   📝 Autor: {doc['metadata'].get('author', 'Desconhecido')}\n"
-                    response += "\n"
-                await message.channel.send(response)
-            else:
-                await message.channel.send("❌ Nenhum documento encontrado.")
+            # if results:
+            #     response = "🔍 **Documentos Encontrados:**\n\n"
+            #     for i, doc in enumerate(results, 1):
+            #         text_preview = doc['text'][:200]
+            #         if len(doc['text']) > 200:
+            #             text_preview += '...'
+            #         response += f"**{i}.** {text_preview}\n\n"
+            #     await message.channel.send(response)
+            # else:
+            await message.channel.send("❌ RAG temporariamente desabilitado devido a problemas de dependências.")
 
     @staticmethod
     async def handle_rag_stats(message: discord.Message):
         """Handle !rag_stats command"""
-        doc_count = vector_store.count_documents()
-        collections = vector_store.list_collections()
+        # doc_count = vector_store.count_documents()  # Temporarily disabled
+        # collections = vector_store.list_collections()  # Temporarily disabled
 
         response = f"📚 **Estatísticas do RAG:**\n"
-        response += f"📄 Total de documentos: {doc_count}\n"
-        response += f"📁 Coleções: {', '.join(collections) if collections else 'Nenhuma'}"
+        response += f"📄 RAG temporariamente desabilitado devido a problemas de dependências\n"
+        response += f"📁 Coleções: Indisponível"
         await message.channel.send(response)
 
     @staticmethod
     async def handle_clear_rag(message: discord.Message):
         """Handle !limpar_rag command"""
-        success = vector_store.delete_all_documents()
-        if success:
-            await message.channel.send("✅ Base de conhecimento limpa!")
-        else:
-            await message.channel.send("❌ Erro ao limpar base de conhecimento.")
+        # success = vector_store.delete_all_documents()  # Temporarily disabled
+        # if success:
+        #     await message.channel.send("✅ Base de conhecimento limpa!")
+        # else:
+        await message.channel.send("❌ RAG temporariamente desabilitado devido a problemas de dependências.")
 
 
 command_handler = CommandHandler()

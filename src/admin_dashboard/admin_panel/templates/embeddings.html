@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+
+{% block title %}Embeddings - Discord Bot Admin{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h2>Gerenciamento de Embeddings (RAG)</h2>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Estatísticas</h3>
+        <button id="refresh-stats" class="btn btn-secondary btn-sm">🔄 Atualizar</button>
+    </div>
+    <div class="card-body">
+        <div class="stats-grid-mini">
+            <div class="stat-item">
+                <span class="stat-label">Status:</span>
+                <span id="rag-status" class="stat-value">Carregando...</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Documentos:</span>
+                <span id="rag-count" class="stat-value">-</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Collection:</span>
+                <span id="rag-collection" class="stat-value">-</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Processar Novos Documentos</h3>
+    </div>
+    <div class="card-body">
+        <form id="upload-form" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="upload-area" id="upload-area">
+                <div class="upload-icon">📁</div>
+                <p>Arraste um arquivo aqui ou clique para selecionar</p>
+                <p class="text-muted">Formatos suportados: TXT, PDF, DOCX</p>
+                <input type="file" id="file-input" name="file" accept=".txt,.pdf,.docx" style="display: none;">
+            </div>
+            <div id="file-name" class="file-name" style="display: none;"></div>
+            <button type="submit" id="upload-btn" class="btn btn-primary" style="display: none; margin-top: 1rem;">
+                Processar Documento
+            </button>
+        </form>
+        <div id="upload-message" class="alert" style="display: none; margin-top: 1rem;"></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Ações Perigosas</h3>
+    </div>
+    <div class="card-body">
+        <p class="text-warning">⚠️ As ações abaixo são irreversíveis!</p>
+        <button id="clear-embeddings" class="btn btn-danger">
+            🗑️ Limpar Todos os Embeddings
+        </button>
+    </div>
+</div>
+
+<script>
+// Load stats on page load
+loadEmbeddingsStats();
+
+document.getElementById('refresh-stats').addEventListener('click', loadEmbeddingsStats);
+
+function loadEmbeddingsStats() {
+    fetch('/api/embeddings/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.initialized) {
+                document.getElementById('rag-status').textContent = '🟢 Inicializado';
+                document.getElementById('rag-count').textContent = data.count;
+                document.getElementById('rag-collection').textContent = data.collection_name || 'N/A';
+            } else {
+                document.getElementById('rag-status').textContent = '🔴 Não inicializado';
+                document.getElementById('rag-count').textContent = '0';
+                document.getElementById('rag-collection').textContent = 'N/A';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading stats:', error);
+            document.getElementById('rag-status').textContent = '❌ Erro';
+        });
+}
+
+// File upload handling
+const uploadArea = document.getElementById('upload-area');
+const fileInput = document.getElementById('file-input');
+const fileName = document.getElementById('file-name');
+const uploadBtn = document.getElementById('upload-btn');
+
+uploadArea.addEventListener('click', () => fileInput.click());
+
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('drag-over');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('drag-over');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    fileInput.files = e.dataTransfer.files;
+    handleFileSelect();
+});
+
+fileInput.addEventListener('change', handleFileSelect);
+
+function handleFileSelect() {
+    if (fileInput.files.length > 0) {
+        fileName.textContent = '📄 ' + fileInput.files[0].name;
+        fileName.style.display = 'block';
+        uploadBtn.style.display = 'block';
+    }
+}
+
+document.getElementById('upload-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const messageDiv = document.getElementById('upload-message');
+
+    fetch('/api/embeddings/process', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            messageDiv.className = 'alert alert-success';
+            messageDiv.textContent = '✅ ' + data.message;
+            messageDiv.style.display = 'block';
+            // Reset form
+            fileInput.value = '';
+            fileName.style.display = 'none';
+            uploadBtn.style.display = 'none';
+            // Refresh stats
+            loadEmbeddingsStats();
+        } else {
+            messageDiv.className = 'alert alert-error';
+            messageDiv.textContent = '❌ ' + (data.error || 'Erro ao processar documento');
+            messageDiv.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        messageDiv.className = 'alert alert-error';
+        messageDiv.textContent = '❌ Erro: ' + error.message;
+        messageDiv.style.display = 'block';
+    });
+});
+
+// Clear embeddings
+document.getElementById('clear-embeddings').addEventListener('click', function() {
+    if (!confirm('Tem certeza que deseja limpar TODOS os embeddings? Esta ação não pode ser desfeita!')) {
+        return;
+    }
+
+    fetch('/api/embeddings/clear', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Embeddings limpos com sucesso!');
+            loadEmbeddingsStats();
+        } else {
+            alert('❌ Erro: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('❌ Erro: ' + error.message);
+    });
+});
+</script>
+{% endblock %}

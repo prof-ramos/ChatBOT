@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Logs - Discord Bot Admin{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h2>Logs do Bot</h2>
+    <div class="header-actions">
+        <button id="refresh-logs" class="btn btn-secondary">🔄 Atualizar</button>
+        <button id="export-txt" class="btn btn-secondary">📄 Exportar TXT</button>
+        <button id="export-json" class="btn btn-secondary">📋 Exportar JSON</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Logs em Tempo Real</h3>
+        <label class="toggle-switch">
+            <input type="checkbox" id="auto-refresh-toggle" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Auto-atualizar</span>
+        </label>
+    </div>
+    <div class="card-body">
+        <div id="logs-container" class="logs-viewer">
+            <p class="text-muted">Carregando logs...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+let autoRefresh = true;
+let eventSource = null;
+
+document.getElementById('auto-refresh-toggle').addEventListener('change', function(e) {
+    autoRefresh = e.target.checked;
+    if (autoRefresh) {
+        startLogStream();
+    } else {
+        stopLogStream();
+    }
+});
+
+document.getElementById('refresh-logs').addEventListener('click', function() {
+    stopLogStream();
+    startLogStream();
+});
+
+document.getElementById('export-txt').addEventListener('click', function() {
+    window.location.href = '/api/logs/export?format=txt';
+});
+
+document.getElementById('export-json').addEventListener('click', function() {
+    window.location.href = '/api/logs/export?format=json';
+});
+
+function startLogStream() {
+    if (eventSource) {
+        eventSource.close();
+    }
+
+    const logsContainer = document.getElementById('logs-container');
+    logsContainer.innerHTML = '';
+
+    eventSource = new EventSource('/api/logs/stream');
+
+    eventSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log-entry';
+        logEntry.textContent = data.message;
+        logsContainer.appendChild(logEntry);
+
+        // Auto-scroll to bottom
+        logsContainer.scrollTop = logsContainer.scrollHeight;
+    };
+
+    eventSource.onerror = function(error) {
+        console.error('EventSource error:', error);
+        logsContainer.innerHTML += '<div class="log-entry error">Erro ao conectar ao stream de logs</div>';
+    };
+}
+
+function stopLogStream() {
+    if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+    }
+}
+
+// Start streaming on page load
+startLogStream();
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    stopLogStream();
+});
+</script>
+{% endblock %}

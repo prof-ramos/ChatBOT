@@ -2,12 +2,14 @@
 Discord bot client and event handlers.
 """
 import discord
+import time
 
 from ..config.settings import settings
 from ..database.sqlite_db import db
-from ..rag.vector_store import vector_store
+# from ..rag.vector_store import vector_store  # Temporarily disabled due to ChromaDB dependency issues
 from .ai_client import ai_client
 from .commands import command_handler
+from ..utils.logging_config import logger as bot_logger
 
 
 class DiscordBot:
@@ -28,24 +30,50 @@ class DiscordBot:
         @self.client.event
         async def on_ready():
             """Handle bot ready event"""
-            db.init_database()
-            vector_store.init_vector_db()
-            print(f'Bot connected as {self.client.user}')
-            print(f'ID: {self.client.user.id}')
-            print('------')
+            start_time = time.time()
+            bot_logger.get_logger().info("Initializing bot components...")
+
+            try:
+                db.init_database()
+                bot_logger.log_bot_event("database_initialized", success=True)
+            except Exception as e:
+                bot_logger.get_logger().error(f"Failed to initialize database: {e}")
+                return
+
+            # vector_store.init_vector_db()  # Temporarily disabled
+            bot_logger.get_logger().warning("RAG system temporarily disabled due to ChromaDB dependency issues")
+
+            init_time = time.time() - start_time
+            bot_logger.log_performance("bot_initialization", init_time * 1000)
+
+            bot_logger.get_logger().info(f'Bot connected as {self.client.user} (ID: {self.client.user.id})')
+            bot_logger.log_bot_event("bot_ready", user_id=str(self.client.user.id))
 
         @self.client.event
         async def on_message(message):
             """Handle incoming messages"""
+            start_time = time.time()
+
             # Ignore bot's own messages
             if message.author == self.client.user:
                 return
+
+            user_id = str(message.author.id)
+            username = str(message.author)
+            channel_type = "DM" if isinstance(message.channel, discord.DMChannel) else "channel"
+
+            bot_logger.log_bot_event("message_received",
+                               user_id=user_id,
+                               username=username,
+                               channel_type=channel_type,
+                               message_length=len(message.content))
 
             # Check if message is DM or mentions bot
             is_dm = isinstance(message.channel, discord.DMChannel)
             is_mentioned = self.client.user in message.mentions
 
             if not (is_dm or is_mentioned):
+                bot_logger.get_logger().debug(f"Ignoring message from {username} - not DM or mention")
                 return
 
             # Clean message content
@@ -110,11 +138,11 @@ class DiscordBot:
         # Get conversation history
         history = db.get_conversation_history(user_id)
 
-        # Search for relevant documents (RAG)
+        # Search for relevant documents (RAG) - Temporarily disabled
         rag_context = None
-        similar_docs = await vector_store.search_similar(user_message)
-        if similar_docs:
-            rag_context = "\n\n".join([doc['text'] for doc in similar_docs])
+        # similar_docs = await vector_store.search_similar(user_message)
+        # if similar_docs:
+        #     rag_context = "\n\n".join([doc['text'] for doc in similar_docs])
 
         # Save user message
         db.save_message(user_id, "user", user_message)

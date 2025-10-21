@@ -31,6 +31,9 @@ class Settings:
     RAG_SEARCH_RESULTS: int = int(os.getenv("RAG_SEARCH_RESULTS", "2"))
     DISCORD_MESSAGE_LIMIT: int = 2000  # Discord's message length limit
 
+    # Logging Configuration
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+
     # System Prompt
     SYSTEM_PROMPT: str = (
         "Você é um assistente útil e amigável que responde em português. "

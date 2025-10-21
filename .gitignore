@@ -162,8 +162,12 @@ cython_debug/
 # Project specific files
 *.db
 bot_data.db
+admin_dashboard.db
 chroma_db/
 .chroma/
+logs/
+staticfiles/
+media/
 
 # Replit specific
 .replit

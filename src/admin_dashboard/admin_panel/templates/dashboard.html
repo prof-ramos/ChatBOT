@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Discord Bot Admin{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h2>Dashboard</h2>
+    <div class="bot-status-indicator">
+        <span class="status-dot {% if bot_status.is_running %}status-online{% else %}status-offline{% endif %}"></span>
+        <span class="status-text">{% if bot_status.is_running %}Online{% else %}Offline{% endif %}</span>
+    </div>
+</div>
+
+<!-- Bot Controls -->
+<div class="card">
+    <div class="card-header">
+        <h3>Controle do Bot</h3>
+    </div>
+    <div class="card-body">
+        <div class="bot-controls">
+            <button id="start-bot" class="btn btn-success" {% if bot_status.is_running %}disabled{% endif %}>
+                Ligar Bot
+            </button>
+            <button id="stop-bot" class="btn btn-danger" {% if not bot_status.is_running %}disabled{% endif %}>
+                Desligar Bot
+            </button>
+            <button id="restart-bot" class="btn btn-warning" {% if not bot_status.is_running %}disabled{% endif %}>
+                Reiniciar Bot
+            </button>
+        </div>
+        <div id="bot-message" class="alert" style="display: none; margin-top: 1rem;"></div>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-info">
+            <div class="stat-value">{{ stats.total_users }}</div>
+            <div class="stat-label">Usuários</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">💬</div>
+        <div class="stat-info">
+            <div class="stat-value">{{ stats.total_messages }}</div>
+            <div class="stat-label">Mensagens Totais</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📝</div>
+        <div class="stat-info">
+            <div class="stat-value">{{ stats.user_messages }}</div>
+            <div class="stat-label">Mensagens de Usuários</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🤖</div>
+        <div class="stat-info">
+            <div class="stat-value">{{ stats.bot_responses }}</div>
+            <div class="stat-label">Respostas do Bot</div>
+        </div>
+    </div>
+</div>
+
+<!-- Bot Info -->
+<div class="info-grid">
+    <div class="card">
+        <div class="card-header">
+            <h3>Informações do Bot</h3>
+        </div>
+        <div class="card-body">
+            <table class="info-table">
+                <tr>
+                    <th>Status:</th>
+                    <td id="status-value">{% if bot_status.is_running %}🟢 Online{% else %}🔴 Offline{% endif %}</td>
+                </tr>
+                <tr>
+                    <th>Tempo Online:</th>
+                    <td id="uptime-value">{{ bot_status.uptime|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <th>Iniciado em:</th>
+                    <td>{{ bot_status.start_time|default:"N/A" }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Sistema</h3>
+        </div>
+        <div class="card-body">
+            <table class="info-table">
+                <tr>
+                    <th>CPU:</th>
+                    <td id="cpu-value">{{ system_stats.cpu_percent }}%</td>
+                </tr>
+                <tr>
+                    <th>Memória:</th>
+                    <td id="memory-value">{{ system_stats.memory_percent|floatformat:2 }}% ({{ system_stats.memory_mb|floatformat:0 }} MB)</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-refresh stats every 5 seconds
+setInterval(refreshStats, 5000);
+
+function refreshStats() {
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Update system stats
+            document.getElementById('cpu-value').textContent = data.system_stats.cpu_percent + '%';
+            document.getElementById('memory-value').textContent =
+                data.system_stats.memory_percent.toFixed(2) + '% (' +
+                Math.round(data.system_stats.memory_mb) + ' MB)';
+        })
+        .catch(error => console.error('Error refreshing stats:', error));
+
+    // Update uptime
+    fetch('/api/uptime')
+        .then(response => response.json())
+        .then(data => {
+            if (data.uptime_seconds) {
+                const hours = Math.floor(data.uptime_seconds / 3600);
+                const minutes = Math.floor((data.uptime_seconds % 3600) / 60);
+                const seconds = data.uptime_seconds % 60;
+                document.getElementById('uptime-value').textContent =
+                    `${hours}h ${minutes}m ${seconds}s`;
+            }
+        })
+        .catch(error => console.error('Error refreshing uptime:', error));
+}
+</script>
+{% endblock %}
