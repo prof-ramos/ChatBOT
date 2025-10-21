@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   discord-bot:
@@ -48,7 +48,7 @@ services:
     # Labels para organização no Portainer
     labels:
       - "com.docker.compose.project=discord-bot-rag"
-      - "traefik.enable=false"  # Bot Discord não precisa de proxy HTTP
+      - "traefik.enable=false" # Bot Discord não precisa de proxy HTTP
       - "app.version=2.0.0"
       - "app.description=Discord Bot with RAG capabilities"
 
@@ -64,10 +64,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 1G
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 256M
       restart_policy:
         condition: on-failure
@@ -75,9 +75,9 @@ services:
         max_attempts: 3
         window: 120s
 
-    # Rede (opcional - se precisar conectar com outros serviços)
+    # Rede principal (Swarm/overlay)
     networks:
-      - discord_bot_network
+      - AbduhNet
 
     # Logging
     logging:
@@ -108,7 +108,7 @@ volumes:
 
 # Redes
 networks:
-  discord_bot_network:
-    driver: bridge
+  AbduhNet:
+    driver: overlay
     labels:
       - "description=Internal network for Discord bot"
