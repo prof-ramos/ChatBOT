@@ -1,0 +1,156 @@
+# Portainer Stack Configuration para Discord Bot RAG v2.0.0
+#
+# Como usar no Portainer:
+# 1. Acesse Portainer > Stacks > Add Stack
+# 2. Cole este arquivo na área de texto
+# 3. Configure as variáveis de ambiente abaixo
+# 4. Clique em "Deploy the stack"
+#
+# Variáveis obrigatórias:
+# - TOKEN: Token do bot Discord
+# - OPENROUTER_API_KEY: Chave API OpenRouter
+# - OPENAI_API_KEY: Chave API OpenAI (para embeddings)
+
+version: '3.8'
+
+services:
+  discord-bot:
+    image: discord-bot-rag:2.0.0
+    container_name: discord-chatbot-rag
+    restart: unless-stopped
+
+    # ========================================
+    # VARIÁVEIS DE AMBIENTE
+    # Configure estas variáveis no Portainer
+    # ========================================
+    environment:
+      # ===== OBRIGATÓRIAS =====
+      # Discord Bot Token
+      TOKEN: ${TOKEN:?ERROR: TOKEN is required}
+
+      # OpenRouter API Key (para respostas de IA)
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?ERROR: OPENROUTER_API_KEY is required}
+
+      # OpenAI API Key (para embeddings/RAG)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?ERROR: OPENAI_API_KEY is required}
+
+      # ===== OPCIONAIS =====
+      # Modelo OpenRouter (padrão: meta-llama/llama-3.1-8b-instruct:free)
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-meta-llama/llama-3.1-8b-instruct:free}
+
+      # Modelo de embeddings OpenAI (padrão: text-embedding-3-small)
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+
+      # Limite de histórico de conversas (padrão: 10)
+      CONVERSATION_HISTORY_LIMIT: ${CONVERSATION_HISTORY_LIMIT:-10}
+
+      # Número de documentos RAG retornados (padrão: 2)
+      RAG_SEARCH_RESULTS: ${RAG_SEARCH_RESULTS:-2}
+
+      # Timezone (padrão: America/Sao_Paulo)
+      TZ: ${TZ:-America/Sao_Paulo}
+
+      # ===== PATHS INTERNOS (não alterar) =====
+      SQLITE_DB_PATH: /app/data/sqlite/bot_data.db
+      CHROMA_DB_PATH: /app/data/chroma_db
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    # ========================================
+    # VOLUMES (Persistência de dados)
+    # ========================================
+    volumes:
+      # SQLite - Histórico de conversas
+      - chatbot_sqlite:/app/data/sqlite
+
+      # ChromaDB - Base de conhecimento vetorial
+      - chatbot_chroma:/app/data/chroma_db
+
+      # Logs da aplicação
+      - chatbot_logs:/app/logs
+
+      # OPCIONAL: Descomentar para importar documentos
+      # - /caminho/no/host/documentos:/app/documentos:ro
+
+    # ========================================
+    # LABELS (Organização no Portainer)
+    # ========================================
+    labels:
+      com.docker.compose.project: "discord-bot-rag"
+      app.version: "2.0.0"
+      app.description: "Discord Bot with RAG capabilities"
+      app.documentation: "https://github.com/prof-ramos/ChatBOT"
+      traefik.enable: "false"
+
+    # ========================================
+    # HEALTHCHECK
+    # ========================================
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # ========================================
+    # RECURSOS (Ajuste conforme seu servidor)
+    # ========================================
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'      # Máximo 1 CPU
+          memory: 1G       # Máximo 1GB RAM
+        reservations:
+          cpus: '0.25'     # Mínimo 0.25 CPU
+          memory: 256M     # Mínimo 256MB RAM
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+    # ========================================
+    # REDE
+    # ========================================
+    networks:
+      - discord_bot_network
+
+    # ========================================
+    # LOGGING
+    # ========================================
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ========================================
+# VOLUMES
+# ========================================
+volumes:
+  chatbot_sqlite:
+    driver: local
+    labels:
+      backup: "true"
+      description: "SQLite database - Conversation history and stats"
+
+  chatbot_chroma:
+    driver: local
+    labels:
+      backup: "true"
+      description: "ChromaDB vector database - RAG knowledge base"
+
+  chatbot_logs:
+    driver: local
+    labels:
+      backup: "false"
+      description: "Application logs"
+
+# ========================================
+# REDES
+# ========================================
+networks:
+  discord_bot_network:
+    driver: bridge
+    labels:
+      description: "Internal network for Discord bot"

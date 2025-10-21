@@ -1,55 +1,59 @@
 # Git
-.git
+.git/
 .gitignore
-.github
+.gitattributes
+.github/
 
 # Python
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-.Python
+__pycache__/
+*.py[cod]
+*$py.class
 *.so
+.Python
 *.egg
-*.egg-info
-dist
-build
-.venv
-venv
-env
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+ENV/
+env/
 
-# Dados locais
-.env
-.env.*
+# Databases (não incluir no build - volumes gerenciam isso)
+*.db
+*.sqlite
+*.sqlite3
 bot_data.db
 chroma_db/
-.local/
 
-# Documentação
-*.md
-!README.md
-docs/
-
-# Testes
-tests/
-.pytest_cache
-.coverage
-htmlcov/
+# Environment files
+.env
+.env.*
+.env.local
 
 # IDE
-.vscode
-.idea
+.vscode/
+.idea/
 *.swp
 *.swo
 .DS_Store
 
-# Docker
+# Docker files (não precisam estar dentro da imagem)
 docker-compose*.yml
-Dockerfile
+Dockerfile*
 .dockerignore
 
-# CI/CD
-.github/
+# Documentation (exceto README)
+*.md
+!README.md
+docs/
+
+# Tests
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
 
 # Logs
 *.log
@@ -59,10 +63,48 @@ logs/
 backup/
 *.tar.gz
 *.zip
+backup.sh
 
 # Monitoring
 prometheus.yml
 grafana/
+docker-compose.monitoring.yml
 
 # OS
 Thumbs.db
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Replit specific
+.replit
+replit.nix
+.config/
+.local/
+.cache/
+.upm/
+
+# Project specific
+2025-*.txt
+PROJECT_HEALTH_REPORT.md
+MIGRATION.md
+CONTRIBUTING.md
+DEPLOY_VPS.md
+QUICKSTART.md
+README_IMPORTADOR.md
+
+# Claude Code
+.claude/
+.mcp.json
+
+# CI/CD
+.github/
+
+# Old structure files (se ainda existirem)
+database.py
+vector_db.py
+import_documents.py

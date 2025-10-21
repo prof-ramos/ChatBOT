@@ -1,31 +1,56 @@
 version: '3.8'
 
 services:
-  chatbot:
+  discord-bot:
+    image: discord-bot-rag:2.0.0
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: discord-chatbot
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    container_name: discord-chatbot-rag
     restart: unless-stopped
 
-    # Variáveis de ambiente
+    # Variáveis de ambiente (configure no Portainer ou arquivo .env)
     environment:
-      - TOKEN=${TOKEN}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - EMBEDDING_MODEL=text-embedding-3-small
-      - PYTHONUNBUFFERED=1
-      - TZ=America/Sao_Paulo
+      # Discord
+      - TOKEN=${TOKEN:?TOKEN is required}
 
-    # Volumes para persistência
+      # OpenRouter (AI Chat)
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:?OPENROUTER_API_KEY is required}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.1-8b-instruct:free}
+
+      # OpenAI (Embeddings)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:?OPENAI_API_KEY is required}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-3-small}
+
+      # Database paths
+      - SQLITE_DB_PATH=/app/data/sqlite/bot_data.db
+      - CHROMA_DB_PATH=/app/data/chroma_db
+
+      # Bot behavior
+      - CONVERSATION_HISTORY_LIMIT=${CONVERSATION_HISTORY_LIMIT:-10}
+      - RAG_SEARCH_RESULTS=${RAG_SEARCH_RESULTS:-2}
+
+      # System
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - TZ=${TZ:-America/Sao_Paulo}
+
+    # Volumes para persistência de dados
     volumes:
       - chatbot_sqlite:/app/data/sqlite
       - chatbot_chroma:/app/data/chroma_db
       - chatbot_logs:/app/logs
+      # Descomentar se quiser importar documentos
+      # - ./documentos:/app/documentos:ro
 
-    # Labels para Traefik (se quiser expor uma API futuramente)
+    # Labels para organização no Portainer
     labels:
+      - "com.docker.compose.project=discord-bot-rag"
       - "traefik.enable=false"  # Bot Discord não precisa de proxy HTTP
+      - "app.version=2.0.0"
+      - "app.description=Discord Bot with RAG capabilities"
 
     # Healthcheck
     healthcheck:
@@ -35,30 +60,55 @@ services:
       retries: 3
       start_period: 40s
 
-    # Recursos
+    # Recursos (ajuste conforme necessário)
     deploy:
       resources:
         limits:
           cpus: '1.0'
-          memory: 512M
+          memory: 1G
         reservations:
           cpus: '0.25'
           memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
-    # Rede (se precisar conectar com outros serviços)
+    # Rede (opcional - se precisar conectar com outros serviços)
     networks:
-      - traefik_network
+      - discord_bot_network
 
-# Volumes nomeados
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Volumes nomeados para persistência
 volumes:
   chatbot_sqlite:
     driver: local
+    labels:
+      - "backup=true"
+      - "description=SQLite database for conversation history"
+
   chatbot_chroma:
     driver: local
+    labels:
+      - "backup=true"
+      - "description=ChromaDB vector database for RAG"
+
   chatbot_logs:
     driver: local
+    labels:
+      - "backup=false"
+      - "description=Application logs"
 
 # Redes
 networks:
-  traefik_network:
-    external: true
+  discord_bot_network:
+    driver: bridge
+    labels:
+      - "description=Internal network for Discord bot"
